@@ -1,0 +1,134 @@
+import tkinter as tk
+from tkinter import ttk
+import subprocess
+import platform
+import json
+import os
+
+
+# Function to ping and check device status
+def ping(host):
+    param = '-n' if platform.system().lower() == 'windows' else '-c'
+    command = ['ping', param, '1', host]
+    return subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+
+import tkinter as tk
+from tkinter import ttk
+import json
+import os
+
+# Function to ping and check device status
+# ... [Your existing ping function remains the same] ...
+
+# Define GUI class
+class DeviceMonitorApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Device Monitor")
+        self.geometry("1200x700")
+        self.devices = {}  # Store devices as {name: [IP, treeview_item]}
+        self.data_file = "device_data.json"
+        self.setup_ui()
+        self.load_devices()
+
+    def setup_ui(self):
+        self.entry_frame = tk.Frame(self)
+        self.entry_frame.pack(pady=10)
+
+        self.name_entry = tk.Entry(self.entry_frame, width=20)
+        self.name_entry.grid(row=0, column=0, padx=5)
+
+        self.ip_entry = tk.Entry(self.entry_frame, width=20)
+        self.ip_entry.grid(row=0, column=1, padx=5)
+
+        add_button = tk.Button(self.entry_frame, text="Add Device", command=self.add_device)
+        add_button.grid(row=0, column=2, padx=5)
+
+        remove_button = tk.Button(self.entry_frame, text="Remove Device", command=self.remove_selected)
+        remove_button.grid(row=0, column=3, padx=5)
+
+        # Treeview setup
+        self.setup_treeview()
+
+    def setup_treeview(self):
+        self.tree = ttk.Treeview(self, columns=("Serial", "Name", "IP", "Status"), show='headings')
+        self.tree.heading("Serial", text="Serial No")
+        self.tree.heading("Name", text="Name")
+        self.tree.heading("IP", text="IP")
+        self.tree.heading("Status", text="Status")
+        for col in self.tree["columns"]:
+            self.tree.column(col, width=150)
+        self.tree.pack(side="left", fill="y", padx=(0, 20))
+
+        self.tree2 = ttk.Treeview(self, columns=("Serial", "Name", "IP", "Status"), show='headings')
+        self.tree2.heading("Serial", text="Serial No")
+        self.tree2.heading("Name", text="Name")
+        self.tree2.heading("IP", text="IP")
+        self.tree2.heading("Status", text="Status")
+        for col in self.tree2["columns"]:
+            self.tree2.column(col, width=150)
+        self.tree2.pack(side="right", fill="y")
+
+    def add_device(self):
+        name = self.name_entry.get()
+        ip = self.ip_entry.get()
+        if name and ip:
+            serial = len(self.devices) + 1
+            tree = self.tree if serial <= 26 else self.tree2
+            item = tree.insert("", tk.END, values=(serial, name, ip, "Checking..."))
+            self.devices[name] = [ip, item, tree]
+            self.name_entry.delete(0, tk.END)
+            self.ip_entry.delete(0, tk.END)
+            self.save_devices()
+
+    def remove_selected(self):
+        selected_item = self.tree.selection() or self.tree2.selection()
+        if selected_item:
+            tree = self.tree if self.tree.selection() else self.tree2
+            name = tree.item(selected_item[0])["values"][1]
+            if name in self.devices:
+                del self.devices[name]
+                tree.delete(selected_item[0])
+                self.save_devices()
+
+    def update_device_status(self, name, status):
+        ip, item, tree = self.devices[name]
+        color = 'green' if status else 'red'
+        tree.item(item, values=(tree.index(item) + 1, name, ip, "Online" if status else "Offline"), tags=(color,))
+        tree.tag_configure('green', foreground='green')
+        tree.tag_configure('red', foreground='red')
+
+    def monitor_devices(self):
+        for name, [ip, _, _] in self.devices.items():
+            status = ping(ip)
+            self.update_device_status(name, status)
+        self.after(5000, self.monitor_devices)
+
+    def save_devices(self):
+        # Convert self.devices to a serializable format
+        serializable_devices = {name: ip for name, (ip, _, _) in self.devices.items()}
+        with open(self.data_file, 'w') as file:
+            json.dump(serializable_devices, file, indent=4)
+
+    def load_devices(self):
+        # Initialize JSON file if it doesn't exist
+        if not os.path.exists(self.data_file):
+            with open(self.data_file, 'w') as file:
+                json.dump({}, file)
+
+        # Load devices from JSON file
+        try:
+            with open(self.data_file, 'r') as file:
+                loaded_devices = json.load(file)
+                for name, ip in loaded_devices.items():
+                    self.name_entry.insert(0, name)
+                    self.ip_entry.insert(0, ip)
+                    self.add_device()
+        except json.JSONDecodeError:
+            print("Error loading JSON data. Starting with an empty device list.")
+
+
+if __name__ == "__main__":
+    app = DeviceMonitorApp()
+    app.after(5000, app.monitor_devices)  # Start monitoring
+    app.mainloop()
