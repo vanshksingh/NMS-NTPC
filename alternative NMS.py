@@ -7,6 +7,7 @@ import os
 from itertools import cycle
 from concurrent.futures import ThreadPoolExecutor
 
+
 class Device:
     def __init__(self, name, ip):
         self.name = name
@@ -15,16 +16,44 @@ class Device:
         self.tree = None
         self.status = "Unknown"
 
+
 def ping(host):
     param = '-n' if platform.system().lower() == 'windows' else '-c'
     command = ['ping', param, '1', host]
     return subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+
+
+class SettingsDialog(tk.Toplevel):
+    def __init__(self, master):
+        super().__init__(master)
+        self.title("Settings")
+        self.geometry("300x200")
+
+        tk.Label(self, text="Resolution (e.g., 1920x1080):").pack(pady=5)
+        self.resolution_entry = tk.Entry(self)
+        self.resolution_entry.pack(pady=5)
+        self.resolution_entry.insert(0, master.geometry())
+
+        tk.Label(self, text="Text Size (e.g., 12):").pack(pady=5)
+        self.text_size_entry = tk.Entry(self)
+        self.text_size_entry.pack(pady=5)
+        self.text_size_entry.insert(0, master.text_size)
+
+        tk.Button(self, text="Apply", command=self.apply_settings).pack(pady=20)
+
+    def apply_settings(self):
+        resolution = self.resolution_entry.get()
+        text_size = int(self.text_size_entry.get())
+        self.master.update_settings(resolution, text_size)
+        self.destroy()
+
 
 class DeviceMonitorApp(tk.Tk):
     def __init__(self, resolution='1200x700', text_size=10):
         super().__init__()
         self.title("Device Monitor")
         self.geometry(resolution)
+        self.text_size = text_size
         self.devices = {}
         self.device_cycle = cycle([])
         self.data_file = "device_data.json"
@@ -49,6 +78,9 @@ class DeviceMonitorApp(tk.Tk):
         remove_button = tk.Button(self.entry_frame, text="Remove Device", command=self.remove_selected)
         remove_button.grid(row=0, column=3, padx=5)
 
+        settings_button = tk.Button(self.entry_frame, text="Settings", command=self.open_settings)
+        settings_button.grid(row=0, column=4, padx=5)
+
         # Setting up two treeviews side by side
         self.tree_frame = tk.Frame(self)
         self.tree_frame.pack(expand=True, fill="both", padx=10)
@@ -58,6 +90,20 @@ class DeviceMonitorApp(tk.Tk):
 
         self.tree1.pack(side="left", fill="both", expand=True)
         self.tree2.pack(side="right", fill="both", expand=True)
+
+
+    def open_settings(self):
+        SettingsDialog(self)
+
+    def update_settings(self, resolution, text_size):
+        self.geometry(resolution)
+        self.text_size = text_size
+        self.apply_text_size()
+
+    def apply_text_size(self):
+        # Update text size in Treeview
+        style = ttk.Style()
+        style.configure('Treeview', font=('Helvetica', self.text_size))
 
     def create_treeview(self, parent):
         tree = ttk.Treeview(parent, columns=("Serial", "Name", "IP", "Status"), show='headings')
@@ -148,6 +194,6 @@ class DeviceMonitorApp(tk.Tk):
                 self.add_device()
 
 if __name__ == "__main__":
-    app = DeviceMonitorApp(resolution='1920x1080', text_size=12)
+    app = DeviceMonitorApp(resolution='1920x1080', text_size=15)
     app.after(1000, app.monitor_devices)
     app.mainloop()
