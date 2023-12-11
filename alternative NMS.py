@@ -33,7 +33,6 @@ class DeviceMonitorApp(tk.Tk):
         self.load_devices()
         self.reset_device_cycle()
 
-
     def setup_ui(self):
         self.entry_frame = tk.Frame(self)
         self.entry_frame.pack(pady=10)
@@ -84,16 +83,22 @@ class DeviceMonitorApp(tk.Tk):
             self.save_devices()
             self.reset_device_cycle()  # Reset device cycle after removing a device
 
+
     def remove_selected(self):
         for tree in [self.tree1, self.tree2]:
             selected_item = tree.selection()
             if selected_item:
+                device_to_remove = None
                 for name, device in self.devices.items():
                     if device.item == selected_item[0]:
-                        del self.devices[name]
+                        tree.delete(selected_item[0])
+                        device_to_remove = name
                         break
-                tree.delete(selected_item[0])
-                self.save_devices()
+
+                if device_to_remove:
+                    del self.devices[device_to_remove]
+                    self.save_devices()
+                    self.reset_device_cycle()  # Reset device cycle after removing a device
                 break
 
     def reset_device_cycle(self):
