@@ -52,7 +52,10 @@ class DeviceMonitorApp(tk.Tk):
 
     def update_device_status(self, name, status):
         item = self.devices[name][1]
-        self.tree.item(item, values=(name, self.devices[name][0], "Online" if status else "Offline"))
+        color = 'green' if status else 'red'
+        self.tree.item(item, values=(name, self.devices[name][0], "Online" if status else "Offline"), tags=(color,))
+        self.tree.tag_configure('green', foreground='green')
+        self.tree.tag_configure('red', foreground='red')
 
     def monitor_devices(self):
         for name, [ip, _] in self.devices.items():
