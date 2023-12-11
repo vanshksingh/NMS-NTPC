@@ -6,7 +6,6 @@ import json
 import os
 from itertools import cycle
 from concurrent.futures import ThreadPoolExecutor
-import time
 
 class Device:
     def __init__(self, name, ip):
@@ -32,7 +31,7 @@ class DeviceMonitorApp(tk.Tk):
         self.thread_pool = ThreadPoolExecutor(max_workers=10)
         self.setup_ui()
         self.load_devices()
-        self.device_cycle = cycle(self.devices.values())
+        self.reset_device_cycle()
 
 
     def setup_ui(self):
@@ -83,6 +82,7 @@ class DeviceMonitorApp(tk.Tk):
             self.name_entry.delete(0, tk.END)
             self.ip_entry.delete(0, tk.END)
             self.save_devices()
+            self.reset_device_cycle()  # Reset device cycle after removing a device
 
     def remove_selected(self):
         for tree in [self.tree1, self.tree2]:
@@ -95,6 +95,10 @@ class DeviceMonitorApp(tk.Tk):
                 tree.delete(selected_item[0])
                 self.save_devices()
                 break
+
+    def reset_device_cycle(self):
+        # Reset the device cycle with the current devices
+        self.device_cycle = cycle(self.devices.values())
 
     def update_device_status(self, device, status):
         color = 'green' if status else 'red'
