@@ -197,8 +197,16 @@ class DeviceMonitorApp(tk.Tk):
         self.after(0, lambda: self.update_device_status(device, status))
 
     def save_devices(self):
+        # Correctly save device data with table information
+        device_data = {
+            name: {
+                'ip': device.ip,
+                'table': 'tree1' if device.tree == self.tree1 else 'tree2'
+            } for name, device in self.devices.items()
+        }
+
         with open(self.data_file, 'w') as file:
-            json.dump({name: device.ip for name, device in self.devices.items()}, file, indent=4)
+            json.dump(device_data, file, indent=4)
 
     def load_devices(self):
         if not os.path.exists(self.data_file):
@@ -206,10 +214,32 @@ class DeviceMonitorApp(tk.Tk):
 
         with open(self.data_file, 'r') as file:
             loaded_devices = json.load(file)
-            for name, ip in loaded_devices.items():
+            for name, data in loaded_devices.items():
+                ip = data['ip']
+                table_choice = data.get('table', 'tree1')
+                self.selected_tree_var.set(table_choice)  # Set the table choice before adding the device
                 self.name_entry.insert(0, name)
                 self.ip_entry.insert(0, ip)
-                self.add_device()
+                self.add_device()  # This will now add the device to the correct table
+                self.name_entry.delete(0, tk.END)
+                self.ip_entry.delete(0, tk.END)
+
+    def reset_device_cycle(self):
+        # Combine devices from both tables
+        devices_combined = list(self.devices.values())
+        self.device_cycle = cycle(devices_combined)
+
+    def monitor_devices(self):
+        try:
+            device = next(self.device_cycle)
+        except StopIteration:
+            self.reset_device_cycle()
+            device = next(self.device_cycle)
+
+        self.set_to_grey(device)
+        self.after(1000, lambda: self.thread_pool.submit(self.ping_and_update, device))
+        self.after(1000, self.monitor_devices)  # Continue with the next device
+
 
 if __name__ == "__main__":
     app = DeviceMonitorApp(resolution='1920x1080', text_size=15)
