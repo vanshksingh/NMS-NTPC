@@ -58,9 +58,21 @@ class DeviceMonitorApp(tk.Tk):
         self.device_cycle = cycle([])
         self.data_file = "device_data.json"
         self.thread_pool = ThreadPoolExecutor(max_workers=10)
+
+        self.selected_tree_var = tk.StringVar(value='tree1')  # Tracks which tree to add devices to
         self.setup_ui()
         self.load_devices()
         self.reset_device_cycle()
+
+
+    def setup_tree_selection_ui(self):
+        self.tree_selection_frame = tk.Frame(self.entry_frame)
+        self.tree_selection_frame.grid(row=1, columnspan=5)
+
+        tk.Radiobutton(self.tree_selection_frame, text="Tree 1", variable=self.selected_tree_var, value='tree1').pack(
+            side='left')
+        tk.Radiobutton(self.tree_selection_frame, text="Tree 2", variable=self.selected_tree_var, value='tree2').pack(
+            side='left')
 
     def setup_ui(self):
         self.entry_frame = tk.Frame(self)
@@ -80,6 +92,11 @@ class DeviceMonitorApp(tk.Tk):
 
         settings_button = tk.Button(self.entry_frame, text="Settings", command=self.open_settings)
         settings_button.grid(row=0, column=4, padx=5)
+
+        tk.Radiobutton(self.entry_frame, text="Table 1", variable=self.selected_tree_var, value='tree1').grid(row=1,
+                                                                                                              column=0)
+        tk.Radiobutton(self.entry_frame, text="Table 2", variable=self.selected_tree_var, value='tree2').grid(row=1,
+                                                                                                              column=1)
 
         # Setting up two treeviews side by side
         self.tree_frame = tk.Frame(self)
@@ -119,15 +136,16 @@ class DeviceMonitorApp(tk.Tk):
         name = self.name_entry.get()
         ip = self.ip_entry.get()
         if name and ip:
+            # Choose the table based on the selected option
+            selected_tree = self.tree1 if self.selected_tree_var.get() == 'tree1' else self.tree2
             device = Device(name, ip)
-            tree = self.tree1 if len(self.devices) < 23 else self.tree2
-            device.item = tree.insert("", tk.END, values=(len(self.devices) + 1, name, ip, "Unknown"))
-            device.tree = tree
+            device.item = selected_tree.insert("", tk.END, values=(len(self.devices) + 1, name, ip, "Unknown"))
+            device.tree = selected_tree
             self.devices[name] = device
             self.name_entry.delete(0, tk.END)
             self.ip_entry.delete(0, tk.END)
             self.save_devices()
-            self.reset_device_cycle()  # Reset device cycle after removing a device
+            self.reset_device_cycle()
 
 
     def remove_selected(self):
