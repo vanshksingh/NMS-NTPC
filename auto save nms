@@ -4,6 +4,9 @@ import subprocess
 import platform
 import json
 import os
+import time
+import threading
+import queue
 
 
 # Function to ping and check device status
@@ -12,24 +15,19 @@ def ping(host):
     command = ['ping', param, '1', host]
     return subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
 
-import tkinter as tk
-from tkinter import ttk
-import json
-import os
-
-# Function to ping and check device status
-# ... [Your existing ping function remains the same] ...
-
-# Define GUI class
 class DeviceMonitorApp(tk.Tk):
-    def __init__(self):
+    def __init__(self, resolution='1200x700', text_size=10):
         super().__init__()
         self.title("Device Monitor")
-        self.geometry("1200x700")
-        self.devices = {}  # Store devices as {name: [IP, treeview_item]}
+        self.geometry(resolution)
+        self.style = ttk.Style()
+        self.style.configure('Treeview', font=('Helvetica', text_size))
+        self.offline_since = {}  # Track time since devices went offline
+        self.devices = {}  # Store devices as {name: [IP, treeview_item, tree]}
         self.data_file = "device_data.json"
         self.setup_ui()
         self.load_devices()
+        self.update_queue = queue.Queue()
 
     def setup_ui(self):
         self.entry_frame = tk.Frame(self)
@@ -57,7 +55,7 @@ class DeviceMonitorApp(tk.Tk):
         self.tree.heading("IP", text="IP")
         self.tree.heading("Status", text="Status")
         for col in self.tree["columns"]:
-            self.tree.column(col, width=150)
+            self.tree.column(col, width=200)
         self.tree.pack(side="left", fill="y", padx=(0, 20))
 
         self.tree2 = ttk.Treeview(self, columns=("Serial", "Name", "IP", "Status"), show='headings')
@@ -66,7 +64,7 @@ class DeviceMonitorApp(tk.Tk):
         self.tree2.heading("IP", text="IP")
         self.tree2.heading("Status", text="Status")
         for col in self.tree2["columns"]:
-            self.tree2.column(col, width=150)
+            self.tree2.column(col, width=200)
         self.tree2.pack(side="right", fill="y")
 
     def add_device(self):
@@ -99,10 +97,20 @@ class DeviceMonitorApp(tk.Tk):
         tree.tag_configure('red', foreground='red')
 
     def monitor_devices(self):
-        for name, [ip, _, _] in self.devices.items():
+        def ping_device(name, ip):
             status = ping(ip)
+            self.update_queue.put((name, status))
+
+        for name, [ip, _, _] in self.devices.items():
+            threading.Thread(target=ping_device, args=(name, ip), daemon=True).start()
+
+        self.after(1000, self.process_queue)  # Schedule the next queue processing
+
+    def process_queue(self):
+        while not self.update_queue.empty():
+            name, status = self.update_queue.get()
             self.update_device_status(name, status)
-        self.after(5000, self.monitor_devices)
+        self.after(1000, self.monitor_devices)  # Schedule the next monitoring
 
     def save_devices(self):
         # Convert self.devices to a serializable format
@@ -127,8 +135,41 @@ class DeviceMonitorApp(tk.Tk):
         except json.JSONDecodeError:
             print("Error loading JSON data. Starting with an empty device list.")
 
+    def update_device_status(self, name, status):
+        ip, item, tree = self.devices[name]
+        color = 'green' if status else 'red'
+        self.offline_since[name] = time.time() if not status else None
+        tree.item(item, values=(tree.index(item) + 1, name, ip, "Online" if status else "Offline"), tags=(color,))
+        tree.tag_configure('green', foreground='green')
+        tree.tag_configure('red', foreground='red')
+
+    def monitor_devices(self):
+        for name, [ip, item, tree] in self.devices.items():
+            # Set color to grey to indicate checking
+            tree.item(item, tags=('checking',))
+            tree.tag_configure('checking', foreground='grey')
+            self.update()
+            time.sleep(1)  # Wait for 1 second
+
+            # Check status and update color
+            status = ping(ip)
+            self.update_device_status(name, status)
+            self.handle_flashing(name, item, tree)
+
+        self.after(1000, self.monitor_devices)  # Schedule the next check
+
+    def handle_flashing(self, name, item, tree):
+        current_time = time.time()
+        if self.offline_since.get(name) and (current_time - self.offline_since[name]) > 120:
+            if tree.tag_has('flashing', item):
+                tree.tag_configure('flashing', foreground='white')
+                tree.tag_remove('flashing', item)
+            else:
+                tree.tag_configure('flashing', foreground='red')
+                tree.tag_add('flashing', item)
+
 
 if __name__ == "__main__":
-    app = DeviceMonitorApp()
-    app.after(5000, app.monitor_devices)  # Start monitoring
+    app = DeviceMonitorApp(resolution='1920x1080', text_size=20)  # Example resolution and text size
+    app.after(500, app.monitor_devices)  # Start monitoring
     app.mainloop()
