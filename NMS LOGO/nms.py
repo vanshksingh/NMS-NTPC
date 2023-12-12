@@ -25,7 +25,7 @@ class PasswordDialog(tk.Toplevel):
         super().__init__(master)
         self.on_success = on_success
         self.title("Enter Password")
-        self.geometry("300x100")
+        self.geometry("300x120")
 
         tk.Label(self, text="Password:").pack(pady=10)
         self.password_entry = tk.Entry(self, show="*")
@@ -45,7 +45,7 @@ class ChangePasswordDialog(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
         self.title("Change Password")
-        self.geometry("300x150")
+        self.geometry("300x180")
 
         tk.Label(self, text="Current Password:").pack(pady=5)
         self.current_password_entry = tk.Entry(self, show="*")
@@ -88,7 +88,7 @@ class SettingsDialog(tk.Toplevel):
         super().__init__(master)
         self.app_instance = app_instance  # Store the reference to the app instance
         self.title("Settings")
-        self.geometry("320x850")
+        self.geometry("320x900")
 
         # Initialize selected_tree_var
         self.selected_tree_var = tk.StringVar(value='tree1')
@@ -334,9 +334,9 @@ class DeviceMonitorApp(tk.Tk):
         if os.path.exists(self.password_file):
             with open(self.password_file, 'r') as file:
                 data = json.load(file)
-                return data.get('password', encrypt_password("default"))  # default password is "default"
+                return data.get('password', encrypt_password("admin"))  # default password is "admin"
         else:
-            return encrypt_password("default")
+            return encrypt_password("admin")
 
     def save_password(self):
         with open(self.password_file, 'w') as file:
