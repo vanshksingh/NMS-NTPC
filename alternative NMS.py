@@ -168,12 +168,15 @@ class SettingsDialog(tk.Toplevel):
         self.master.update_ip_visibility()
         self.master.save_devices()
 
+        self.master.text_size = text_size
+        self.master.update_treeview_style()
+        
         self.destroy()
 
 
 
 class DeviceMonitorApp(tk.Tk):
-    def __init__(self, resolution='1200x700', text_size=10, hide_ip=False, title_text="Device Monitor Application"):
+    def __init__(self, resolution='1200x700', text_size=15, hide_ip=False, title_text="Device Monitor Application"):
         super().__init__()
         self.title("Device Monitor")
         # Increase the font size for all elements
@@ -198,6 +201,26 @@ class DeviceMonitorApp(tk.Tk):
         self.setup_ui()
         self.load_devices()
         self.reset_device_cycle()
+        self.apply_text_size()  # Apply the initial text size
+
+    def update_treeview_style(self):
+        style = ttk.Style()
+        style.configure("Custom.Treeview", font=("Helvetica", self.text_size),
+                        rowheight=30 + self.text_size)  # Adjust the row height dynamically
+        self.tree1.configure(style="Custom.Treeview")
+        self.tree2.configure(style="Custom.Treeview")
+
+
+    def apply_text_size(self):
+        # Update text size in Treeview
+        style = ttk.Style()
+        style.configure('Treeview', font=('Helvetica', self.text_size))
+
+        # Adjust the row height in Treeview
+        row_height = 100  # Adjust row height based on text size
+        self.tree1.configure(style="my.Treeview", rowheight=row_height)
+        self.tree2.configure(style="my.Treeview", rowheight=row_height)
+
 
 
     def update_title(self, new_title):
@@ -218,7 +241,7 @@ class DeviceMonitorApp(tk.Tk):
         left_spacer = tk.Frame(self.entry_frame, width=20)
         left_spacer.pack(side="left")
 
-        self.title_label = tk.Label(self.entry_frame, text=self.title_text, font=('Helvetica', 14, 'bold'))
+        self.title_label = tk.Label(self.entry_frame, text=self.title_text, font=('Helvetica', 24, 'bold'))
         self.title_label.pack(side="left", expand=True)
 
         settings_button = tk.Button(self.entry_frame, text="Settings", command=self.open_settings)
@@ -234,8 +257,8 @@ class DeviceMonitorApp(tk.Tk):
         self.tree_frame2.pack(side="right", expand=True, fill="both", padx=10)
 
         # Create and pack the labels above the treeviews
-        self.label_tree1 = tk.Label(self.tree_frame1, text="Table 1", font=('Helvetica', 12, 'bold'))
-        self.label_tree2 = tk.Label(self.tree_frame2, text="Table 2", font=('Helvetica', 12, 'bold'))
+        self.label_tree1 = tk.Label(self.tree_frame1, text="Table 1", font=('Helvetica', 22, 'bold'))
+        self.label_tree2 = tk.Label(self.tree_frame2, text="Table 2", font=('Helvetica', 22, 'bold'))
         self.label_tree1.pack(side="top", fill="x")
         self.label_tree2.pack(side="top", fill="x")
 
@@ -272,7 +295,11 @@ class DeviceMonitorApp(tk.Tk):
         style.configure('Treeview', font=('Helvetica', self.text_size))
 
     def create_treeview(self, parent):
-        tree = ttk.Treeview(parent, columns=("Serial", "Name", "IP", "Status"), show='headings')
+        style = ttk.Style()
+        style.configure("Custom.Treeview", font=("Helvetica", self.text_size),
+                        rowheight=30)  # Adjust the row height here
+        tree = ttk.Treeview(parent, style="Custom.Treeview", columns=("Serial", "Name", "IP", "Status"),
+                            show='headings')
         tree.heading("Serial", text="Serial No")
         tree.heading("Name", text="Name")
         tree.heading("IP", text="IP")
