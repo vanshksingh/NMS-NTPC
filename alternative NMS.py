@@ -22,10 +22,11 @@ def ping(host):
     return subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
 
 class SettingsDialog(tk.Toplevel):
-    def __init__(self, master):
+    def __init__(self, master, app_instance):  # Accept the app_instance argument
         super().__init__(master)
+        self.app_instance = app_instance  # Store the reference to the app instance
         self.title("Settings")
-        self.geometry("320x500")
+        self.geometry("320x550")
 
         # Initialize selected_tree_var
         self.selected_tree_var = tk.StringVar(value='tree1')
@@ -49,6 +50,11 @@ class SettingsDialog(tk.Toplevel):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        tk.Label(self.scrollable_frame, text="Application Title:").pack(pady=5)
+        self.title_entry = tk.Entry(self.scrollable_frame)
+        self.title_entry.pack(pady=5)
+        self.title_entry.insert(0, self.master.title_text)  # Load current title
+
         # Add setting fields (organized one below the other)
         self.add_setting_fields()
 
@@ -56,7 +62,7 @@ class SettingsDialog(tk.Toplevel):
         self.create_device_management_frame()
 
         # Apply button
-        tk.Button(self.scrollable_frame, text="Apply", command=self.apply_settings).pack(pady=20)
+        tk.Button(self.scrollable_frame, text="Apply", command=self.apply_settings).pack(pady=10)
 
     def add_setting_fields(self):
         # Resolution setting
@@ -99,14 +105,14 @@ class SettingsDialog(tk.Toplevel):
         self.ip_entry.grid(row=0, column=1, padx=5)
 
         add_button = tk.Button(self.entry_frame, text="Add Device", command=self.add_device)
-        add_button.grid(row=2, column=0, padx=5)
+        add_button.grid(row=1, column=0, padx=5)
 
         remove_button = tk.Button(self.entry_frame, text="Remove Device", command=self.remove_selected)
-        remove_button.grid(row=2, column=1, padx=5)
+        remove_button.grid(row=1, column=1, padx=5)
 
-        tk.Radiobutton(self.entry_frame, text="Table 1", variable=self.selected_tree_var, value='tree1').grid(row=3,
+        tk.Radiobutton(self.entry_frame, text="Table 1", variable=self.selected_tree_var, value='tree1').grid(row=2,
                                                                                                               column=0)
-        tk.Radiobutton(self.entry_frame, text="Table 2", variable=self.selected_tree_var, value='tree2').grid(row=3,
+        tk.Radiobutton(self.entry_frame, text="Table 2", variable=self.selected_tree_var, value='tree2').grid(row=2,
                                                                                                               column=1)
 
     def add_device(self):
@@ -114,15 +120,20 @@ class SettingsDialog(tk.Toplevel):
         name = self.name_entry.get()
         ip = self.ip_entry.get()
         if name and ip:
-            selected_tree = self.master.tree1 if self.selected_tree_var.get() == 'tree1' else self.master.tree2
+            selected_tree = self.app_instance.tree1 if self.selected_tree_var.get() == 'tree1' else self.app_instance.tree2
             device = Device(name, ip)
-            device.item = selected_tree.insert("", tk.END, values=(len(self.master.devices) + 1, name, ip, "Unknown"))
+            device.item = selected_tree.insert("", tk.END,
+                                               values=(len(self.app_instance.devices) + 1, name, ip, "Unknown"))
             device.tree = selected_tree
-            self.master.devices[name] = device
+            self.app_instance.devices[name] = device
             self.name_entry.delete(0, tk.END)
             self.ip_entry.delete(0, tk.END)
-            self.master.save_devices()
-            self.master.reset_device_cycle()
+            self.app_instance.save_devices()
+            self.app_instance.reset_device_cycle()
+
+            # Start monitoring when the first device is added
+            if len(self.app_instance.devices) == 1:
+                self.app_instance.monitor_devices()
 
     def remove_selected(self):
         # Logic to remove a selected device
@@ -148,8 +159,14 @@ class SettingsDialog(tk.Toplevel):
         text_size = int(self.text_size_entry.get())
         self.master.update_settings(resolution, text_size, self.hide_ip_var.get())
 
-        self.master.label_tree1.config(text=self.label_table1_entry.get())
-        self.master.label_tree2.config(text=self.label_table2_entry.get())
+        new_title = self.title_entry.get()
+        self.master.update_title(new_title)  # Update the title
+
+        label_table1_text = self.label_table1_entry.get()
+        self.master.update_label("label_tree1", label_table1_text)  # Update label for Table 1
+
+        label_table2_text = self.label_table2_entry.get()
+        self.master.update_label("label_tree2", label_table2_text)  # Update label for Table 2
 
         self.master.update_ip_visibility()
         self.master.save_devices()
@@ -157,8 +174,9 @@ class SettingsDialog(tk.Toplevel):
         self.destroy()
 
 
+
 class DeviceMonitorApp(tk.Tk):
-    def __init__(self, resolution='1200x700', text_size=10, hide_ip=False):
+    def __init__(self, resolution='1200x700', text_size=10, hide_ip=False, title_text="Device Monitor Application"):
         super().__init__()
         self.title("Device Monitor")
         self.geometry(resolution)
@@ -169,23 +187,40 @@ class DeviceMonitorApp(tk.Tk):
         self.data_file = "device_data.json"
         self.thread_pool = ThreadPoolExecutor(max_workers=10)
 
+        self.title_text = title_text  # Correctly store the title text
+
         # Initialize selected_tree_var before calling setup_ui
-        self.selected_tree_var = tk.StringVar(value='tree1')  # Add this line
+        self.selected_tree_var = tk.StringVar(value='tree1')
 
         self.setup_ui()
         self.load_devices()
         self.reset_device_cycle()
 
+    def update_title(self, new_title):
+        self.title_text = new_title
+        self.title(new_title)  # Update the title of the main application window
 
-
+    def update_label(self, label_name, new_text):
+        if label_name == "label_tree1":
+            self.label_tree1.config(text=new_text)
+        elif label_name == "label_tree2":
+            self.label_tree2.config(text=new_text)
 
     def setup_ui(self):
-        self.entry_frame = tk.Frame(self)  # Define entry_frame here
+        self.entry_frame = tk.Frame(self)
         self.entry_frame.pack(side="top", fill="x", pady=10)
 
-        settings_button = tk.Button(self.entry_frame, text="Settings", command=self.open_settings)
-        settings_button.grid(row=0, column=4, padx=5)
+        left_spacer = tk.Frame(self.entry_frame, width=20)
+        left_spacer.pack(side="left")
 
+        self.title_label = tk.Label(self.entry_frame, text=self.title_text, font=('Helvetica', 14, 'bold'))
+        self.title_label.pack(side="left", expand=True)
+
+        settings_button = tk.Button(self.entry_frame, text="Settings", command=self.open_settings)
+        settings_button.pack(side="right", padx=5)
+
+        right_spacer = tk.Frame(self.entry_frame, width=20)
+        right_spacer.pack(side="right")
 
         # Frames for treeviews including labels
         self.tree_frame1 = tk.Frame(self)
@@ -207,7 +242,9 @@ class DeviceMonitorApp(tk.Tk):
 
 
     def open_settings(self):
-        SettingsDialog(self)
+
+            SettingsDialog(self, self)
+
 
     def update_settings(self, resolution, text_size, hide_ip):
         self.geometry(resolution)
@@ -292,6 +329,11 @@ class DeviceMonitorApp(tk.Tk):
         device.tree.tag_configure('red', foreground='red')
 
     def monitor_devices(self):
+        if not self.devices:
+            # If there are no devices, reset the device cycle and return
+            self.reset_device_cycle()
+            return
+
         try:
             device = next(self.device_cycle)
         except StopIteration:
@@ -305,7 +347,18 @@ class DeviceMonitorApp(tk.Tk):
 
         self.set_to_grey(device)
         self.after(1000, lambda: self.thread_pool.submit(self.ping_and_update, device))
-        self.after(1000, self.monitor_devices)
+        self.after(1000, self.monitor_devices)  # Continue with the next device
+
+    # Add this function to initiate monitoring
+    def start_monitoring(self):
+        if not self.devices:
+            # If there are no devices, reset the device cycle and return
+            self.reset_device_cycle()
+            return
+
+        self.monitor_devices()
+
+
     def set_to_grey(self, device):
         device.tree.item(device.item, tags=('grey',))
         device.tree.tag_configure('grey', foreground='grey')
@@ -315,22 +368,25 @@ class DeviceMonitorApp(tk.Tk):
         self.after(0, lambda: self.update_device_status(device, status))
 
     def save_devices(self):
-        # Save device data with table information and label texts
-        device_data = {
-            'devices': {
-                name: {
-                    'ip': device.ip,
-                    'table': 'tree1' if device.tree == self.tree1 else 'tree2'
-                } for name, device in self.devices.items()
-            },
-            'labels': {
-                'label_tree1': self.label_tree1.cget("text"),
-                'label_tree2': self.label_tree2.cget("text")
+        try:
+            device_data = {
+                'devices': {
+                    name: {
+                        'ip': device.ip,
+                        'table': 'tree1' if device.tree == self.tree1 else 'tree2'
+                    } for name, device in self.devices.items()
+                },
+                'labels': {
+                    'label_tree1': self.label_tree1.cget("text"),
+                    'label_tree2': self.label_tree2.cget("text")
+                },
+                'title': self.title_text  # Save the title
             }
-        }
 
-        with open(self.data_file, 'w') as file:
-            json.dump(device_data, file, indent=4)
+            with open(self.data_file, 'w') as file:
+                json.dump(device_data, file, indent=4)
+        except Exception as e:
+            print(f"Error saving devices: {e}")
 
     def load_devices(self):
         if not os.path.exists(self.data_file):
@@ -344,6 +400,9 @@ class DeviceMonitorApp(tk.Tk):
             # Load table labels
             self.label_tree1.config(text=labels.get('label_tree1', "Table 1"))
             self.label_tree2.config(text=labels.get('label_tree2', "Table 2"))
+
+            self.title_text = loaded_data.get('title', "Device Monitor Application")
+            self.title_label.config(text=self.title_text)
 
             for name, data in loaded_devices.items():
                 ip = data.get('ip')
@@ -373,6 +432,6 @@ class DeviceMonitorApp(tk.Tk):
 
 
 if __name__ == "__main__":
-    app = DeviceMonitorApp(resolution='1920x1080', text_size=15)
-    app.after(1000, app.monitor_devices)
+    app = DeviceMonitorApp(resolution='1920x1080', text_size=15, title_text="Your Title Here")
+    app.start_monitoring()  # Start monitoring when the application is launched
     app.mainloop()
