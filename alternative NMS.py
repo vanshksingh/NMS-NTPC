@@ -160,13 +160,10 @@ class SettingsDialog(tk.Toplevel):
         self.master.update_settings(resolution, text_size, self.hide_ip_var.get())
 
         new_title = self.title_entry.get()
-        self.master.update_title(new_title)  # Update the title
+        self.master.update_title(new_title)  # Update the title immediately
 
-        label_table1_text = self.label_table1_entry.get()
-        self.master.update_label("label_tree1", label_table1_text)  # Update label for Table 1
-
-        label_table2_text = self.label_table2_entry.get()
-        self.master.update_label("label_tree2", label_table2_text)  # Update label for Table 2
+        self.master.label_tree1.config(text=self.label_table1_entry.get())
+        self.master.label_tree2.config(text=self.label_table2_entry.get())
 
         self.master.update_ip_visibility()
         self.master.save_devices()
