@@ -7,8 +7,67 @@ import json
 import os
 from itertools import cycle
 from concurrent.futures import ThreadPoolExecutor
-from tkinter import PhotoImage
 from PIL import Image, ImageTk
+import base64
+import tkinter.messagebox as messagebox
+
+
+
+
+def encrypt_password(password):
+    return base64.b64encode(password.encode()).decode()
+
+def decrypt_password(encrypted_password):
+    return base64.b64decode(encrypted_password.encode()).decode()
+
+class PasswordDialog(tk.Toplevel):
+    def __init__(self, master, on_success):
+        super().__init__(master)
+        self.on_success = on_success
+        self.title("Enter Password")
+        self.geometry("300x100")
+
+        tk.Label(self, text="Password:").pack(pady=10)
+        self.password_entry = tk.Entry(self, show="*")
+        self.password_entry.pack()
+        tk.Button(self, text="Submit", command=self.check_password).pack(pady=10)
+
+    def check_password(self):
+        entered_password = self.password_entry.get()
+        if encrypt_password(entered_password) == self.master.password:
+            self.destroy()
+            self.on_success()  # Call the callback function to open the settings dialog
+        else:
+            tk.messagebox.showerror("Error", "Incorrect Password")
+
+
+class ChangePasswordDialog(tk.Toplevel):
+    def __init__(self, master):
+        super().__init__(master)
+        self.title("Change Password")
+        self.geometry("300x150")
+
+        tk.Label(self, text="Current Password:").pack(pady=5)
+        self.current_password_entry = tk.Entry(self, show="*")
+        self.current_password_entry.pack()
+
+        tk.Label(self, text="New Password:").pack(pady=5)
+        self.new_password_entry = tk.Entry(self, show="*")
+        self.new_password_entry.pack()
+
+        tk.Button(self, text="Change", command=self.change_password).pack(pady=10)
+
+    def change_password(self):
+        current_password = self.current_password_entry.get()
+        new_password = self.new_password_entry.get()
+        if encrypt_password(current_password) == self.master.password:
+            self.master.password = encrypt_password(new_password)
+            self.master.save_password()
+            tk.messagebox.showinfo("Success", "Password Changed Successfully")
+            self.destroy()
+        else:
+            tk.messagebox.showerror("Error", "Incorrect Current Password")
+
 
 class Device:
     def __init__(self, name, ip):
@@ -66,6 +125,7 @@ class SettingsDialog(tk.Toplevel):
 
         # Apply button
         tk.Button(self.scrollable_frame, text="Apply", command=self.apply_settings).pack(pady=10)
+        tk.Button(self.scrollable_frame, text="Change Password", command=self.master.change_password).pack(pady=10)
 
     def add_setting_fields(self):
         # Resolution setting
@@ -259,6 +319,9 @@ class DeviceMonitorApp(tk.Tk):
         self.font_italic = False
         self.font_underline = False
 
+        self.password_file = "password.json"
+        self.password = self.load_password()
+
         self.setup_ui()
         self.load_devices()
         self.reset_device_cycle()
@@ -266,6 +329,30 @@ class DeviceMonitorApp(tk.Tk):
 
         self.widget_fonts = {}
         self.load_font_settings()
+
+    def load_password(self):
+        if os.path.exists(self.password_file):
+            with open(self.password_file, 'r') as file:
+                data = json.load(file)
+                return data.get('password', encrypt_password("default"))  # default password is "default"
+        else:
+            return encrypt_password("default")
+
+    def save_password(self):
+        with open(self.password_file, 'w') as file:
+            json.dump({'password': self.password}, file, indent=4)
+
+    def open_settings(self):
+        # Open Password Dialog first. If the password is correct, open_settings_dialog will be called.
+        PasswordDialog(self, self.open_settings_dialog)
+
+    def open_settings_dialog(self):
+        # Open Settings Dialog only after successful password entry
+        SettingsDialog(self, self)
+
+    def change_password(self):
+        ChangePasswordDialog(self)
+
 
     def update_treeview_row_height(self):
         # Estimate row height based on font size. Adjust the multiplier as needed.
@@ -448,8 +535,12 @@ class DeviceMonitorApp(tk.Tk):
                 self.refresh_widgets(widget)
 
     def open_settings(self):
+        # Open Password Dialog first. If the password is correct, open_settings_dialog will be called.
+        PasswordDialog(self, self.open_settings_dialog)
 
-            SettingsDialog(self, self)
+    def open_settings_dialog(self):
+        # Open Settings Dialog only after successful password entry
+        SettingsDialog(self, self)
 
 
     def update_settings(self, resolution, text_size, hide_ip):
