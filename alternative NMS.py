@@ -193,10 +193,12 @@ class DeviceMonitorApp(tk.Tk):
         self.load_devices()
         self.reset_device_cycle()
 
+
     def update_title(self, new_title):
         self.title_text = new_title
         self.title(new_title)  # Update the title of the main application window
-
+        self.title_label.config(text=new_title)  #
+        
     def update_label(self, label_name, new_text):
         if label_name == "label_tree1":
             self.label_tree1.config(text=new_text)
