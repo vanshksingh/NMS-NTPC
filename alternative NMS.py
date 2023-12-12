@@ -170,7 +170,10 @@ class SettingsDialog(tk.Toplevel):
 
         self.master.text_size = text_size
         self.master.update_treeview_style()
-        
+
+        self.master.text_size = text_size
+        self.master.update_treeview_row_height()
+
         self.destroy()
 
 
@@ -202,6 +205,19 @@ class DeviceMonitorApp(tk.Tk):
         self.load_devices()
         self.reset_device_cycle()
         self.apply_text_size()  # Apply the initial text size
+
+    def update_treeview_row_height(self):
+        # Estimate row height based on font size. Adjust the multiplier as needed.
+        estimated_row_height = self.text_size + 10
+
+        # Configure the custom Treeview style with the new row height
+        style = ttk.Style()
+        style.configure("Custom.Treeview", font=("Helvetica", self.text_size), rowheight=estimated_row_height)
+
+        # Update the style of both treeviews
+        self.tree1.configure(style="Custom.Treeview")
+        self.tree2.configure(style="Custom.Treeview")
+
 
     def update_treeview_style(self):
         style = ttk.Style()
@@ -412,7 +428,11 @@ class DeviceMonitorApp(tk.Tk):
                     'label_tree1': self.label_tree1.cget("text"),
                     'label_tree2': self.label_tree2.cget("text")
                 },
-                'title': self.title_text  # Save the title
+                'settings': {
+                    'title': self.title_text,  # Existing title
+                    'text_size': self.text_size,  # Save the current font size
+                    'hide_ip': self.hide_ip  # Save the state of IP address visibility
+                }
             }
 
             with open(self.data_file, 'w') as file:
@@ -428,12 +448,18 @@ class DeviceMonitorApp(tk.Tk):
             loaded_data = json.load(file)
             loaded_devices = loaded_data.get('devices', {})
             labels = loaded_data.get('labels', {})
+            settings = loaded_data.get('settings', {})
 
             # Load table labels
             self.label_tree1.config(text=labels.get('label_tree1', "Table 1"))
             self.label_tree2.config(text=labels.get('label_tree2', "Table 2"))
 
-            self.title_text = loaded_data.get('title', "Device Monitor Application")
+            # Load settings
+            self.title_text = settings.get('title', "Device Monitor Application")
+            self.text_size = settings.get('text_size', 15)  # Default font size
+            self.hide_ip = settings.get('hide_ip', False)  # Default IP address visibility
+            self.update_treeview_row_height()  # Update the Treeview row height
+            self.update_ip_visibility()  # Update IP visibility
             self.title_label.config(text=self.title_text)
 
             for name, data in loaded_devices.items():
@@ -444,7 +470,6 @@ class DeviceMonitorApp(tk.Tk):
                 device.tree = tree
                 device.item = tree.insert("", tk.END, values=(len(self.devices) + 1, name, ip, "Unknown"))
                 self.devices[name] = device
-
 
     def reset_device_cycle(self):
         # Combine devices from both tables
