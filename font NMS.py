@@ -27,7 +27,7 @@ class SettingsDialog(tk.Toplevel):
         super().__init__(master)
         self.app_instance = app_instance  # Store the reference to the app instance
         self.title("Settings")
-        self.geometry("320x550")
+        self.geometry("320x850")
 
         # Initialize selected_tree_var
         self.selected_tree_var = tk.StringVar(value='tree1')
