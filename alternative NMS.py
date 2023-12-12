@@ -176,6 +176,12 @@ class DeviceMonitorApp(tk.Tk):
     def __init__(self, resolution='1200x700', text_size=10, hide_ip=False, title_text="Device Monitor Application"):
         super().__init__()
         self.title("Device Monitor")
+        # Increase the font size for all elements
+        self.text_size = text_size + 5  # Increase text size by 5
+
+        # Adjust the widget sizes (e.g., treeview columns)
+        self.tree_column_width = 250  # Increase the width of treeview columns
+
         self.geometry(resolution)
         self.text_size = text_size
         self.hide_ip = hide_ip
@@ -198,7 +204,7 @@ class DeviceMonitorApp(tk.Tk):
         self.title_text = new_title
         self.title(new_title)  # Update the title of the main application window
         self.title_label.config(text=new_title)  #
-        
+
     def update_label(self, label_name, new_text):
         if label_name == "label_tree1":
             self.label_tree1.config(text=new_text)
@@ -222,10 +228,10 @@ class DeviceMonitorApp(tk.Tk):
         right_spacer.pack(side="right")
 
         # Frames for treeviews including labels
-        self.tree_frame1 = tk.Frame(self)
-        self.tree_frame2 = tk.Frame(self)
-        self.tree_frame1.pack(side="left", expand=True, fill="both", padx=5)
-        self.tree_frame2.pack(side="right", expand=True, fill="both", padx=5)
+        self.tree_frame1 = tk.Frame(self, padx=10 , pady=10)
+        self.tree_frame2 = tk.Frame(self, padx=10 , pady=10)
+        self.tree_frame1.pack(side="left", expand=True, fill="both", padx=10)
+        self.tree_frame2.pack(side="right", expand=True, fill="both", padx=10)
 
         # Create and pack the labels above the treeviews
         self.label_tree1 = tk.Label(self.tree_frame1, text="Table 1", font=('Helvetica', 12, 'bold'))
@@ -236,8 +242,8 @@ class DeviceMonitorApp(tk.Tk):
         # Treeviews
         self.tree1 = self.create_treeview(self.tree_frame1)
         self.tree2 = self.create_treeview(self.tree_frame2)
-        self.tree1.pack(expand=True, fill="both")
-        self.tree2.pack(expand=True, fill="both")
+        self.tree1.pack(expand=True, fill="both" , padx=5, pady=5)
+        self.tree2.pack(expand=True, fill="both" , padx=5, pady=5)
 
 
     def open_settings(self):
@@ -433,4 +439,5 @@ class DeviceMonitorApp(tk.Tk):
 if __name__ == "__main__":
     app = DeviceMonitorApp(resolution='1920x1080', text_size=15, title_text="Your Title Here")
     app.start_monitoring()  # Start monitoring when the application is launched
+    app.tk_setPalette(background='gray90', foreground='black', activeBackground='gray80', activeForeground='black')
     app.mainloop()
