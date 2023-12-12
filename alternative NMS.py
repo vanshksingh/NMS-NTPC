@@ -450,16 +450,11 @@ class DeviceMonitorApp(tk.Tk):
             labels = loaded_data.get('labels', {})
             settings = loaded_data.get('settings', {})
 
-            # Load table labels
-            self.label_tree1.config(text=labels.get('label_tree1', "Table 1"))
-            self.label_tree2.config(text=labels.get('label_tree2', "Table 2"))
-
             # Load settings
             self.title_text = settings.get('title', "Device Monitor Application")
-            self.text_size = settings.get('text_size', 15)  # Default font size
-            self.hide_ip = settings.get('hide_ip', False)  # Default IP address visibility
-            self.update_treeview_row_height()  # Update the Treeview row height
-            self.update_ip_visibility()  # Update IP visibility
+            self.text_size = settings.get('text_size', 15)
+            self.hide_ip = settings.get('hide_ip', False)
+            self.update_treeview_row_height()
             self.title_label.config(text=self.title_text)
 
             for name, data in loaded_devices.items():
@@ -468,8 +463,13 @@ class DeviceMonitorApp(tk.Tk):
                 tree = self.tree1 if table_choice == 'tree1' else self.tree2
                 device = Device(name, ip)
                 device.tree = tree
+                if self.hide_ip:
+                    ip = '*******'  # Replace IP with hidden format if hide_ip is True
                 device.item = tree.insert("", tk.END, values=(len(self.devices) + 1, name, ip, "Unknown"))
                 self.devices[name] = device
+
+            # Update the IP visibility after loading all devices
+            self.update_ip_visibility()
 
     def reset_device_cycle(self):
         # Combine devices from both tables
