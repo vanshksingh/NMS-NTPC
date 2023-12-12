@@ -25,7 +25,10 @@ class SettingsDialog(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
         self.title("Settings")
-        self.geometry("300x300")
+        self.geometry("320x500")
+
+        # Initialize selected_tree_var
+        self.selected_tree_var = tk.StringVar(value='tree1')
 
         container = tk.Frame(self)
         canvas = tk.Canvas(container)
@@ -46,32 +49,101 @@ class SettingsDialog(tk.Toplevel):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        # Add setting fields (organized one below the other)
+        self.add_setting_fields()
+
+        # Device management frame
+        self.create_device_management_frame()
+
+        # Apply button
+        tk.Button(self.scrollable_frame, text="Apply", command=self.apply_settings).pack(pady=20)
+
+    def add_setting_fields(self):
+        # Resolution setting
         tk.Label(self.scrollable_frame, text="Resolution (e.g., 1920x1080):").pack(pady=5)
         self.resolution_entry = tk.Entry(self.scrollable_frame)
         self.resolution_entry.pack(pady=5)
-        self.resolution_entry.insert(0, master.geometry())
+        self.resolution_entry.insert(0, self.master.geometry())
 
+        # Text size setting
         tk.Label(self.scrollable_frame, text="Text Size (e.g., 12):").pack(pady=5)
         self.text_size_entry = tk.Entry(self.scrollable_frame)
         self.text_size_entry.pack(pady=5)
-        self.text_size_entry.insert(0, master.text_size)
+        self.text_size_entry.insert(0, self.master.text_size)
 
+        # Label for Table 1 setting
         tk.Label(self.scrollable_frame, text="Label for Table 1:").pack(pady=5)
         self.label_table1_entry = tk.Entry(self.scrollable_frame)
         self.label_table1_entry.pack(pady=5)
-        self.label_table1_entry.insert(0, master.label_tree1.cget("text"))
+        self.label_table1_entry.insert(0, self.master.label_tree1.cget("text"))
 
+        # Label for Table 2 setting
         tk.Label(self.scrollable_frame, text="Label for Table 2:").pack(pady=5)
         self.label_table2_entry = tk.Entry(self.scrollable_frame)
         self.label_table2_entry.pack(pady=5)
-        self.label_table2_entry.insert(0, master.label_tree2.cget("text"))
+        self.label_table2_entry.insert(0, self.master.label_tree2.cget("text"))
 
-        self.hide_ip_var = tk.BooleanVar(value=master.hide_ip)
+        # Hide IP Addresses checkbox
+        self.hide_ip_var = tk.BooleanVar(value=self.master.hide_ip)
         tk.Checkbutton(self.scrollable_frame, text="Hide IP Addresses", variable=self.hide_ip_var).pack(pady=10)
 
-        tk.Button(self.scrollable_frame, text="Apply", command=self.apply_settings).pack(pady=20)
+    def create_device_management_frame(self):
+        # Device management frame
+        self.entry_frame = tk.Frame(self.scrollable_frame)
+        self.entry_frame.pack(pady=10)
+
+        self.name_entry = tk.Entry(self.entry_frame, width=15)
+        self.name_entry.grid(row=0, column=0, padx=5)
+
+        self.ip_entry = tk.Entry(self.entry_frame, width=15)
+        self.ip_entry.grid(row=0, column=1, padx=5)
+
+        add_button = tk.Button(self.entry_frame, text="Add Device", command=self.add_device)
+        add_button.grid(row=2, column=0, padx=5)
+
+        remove_button = tk.Button(self.entry_frame, text="Remove Device", command=self.remove_selected)
+        remove_button.grid(row=2, column=1, padx=5)
+
+        tk.Radiobutton(self.entry_frame, text="Table 1", variable=self.selected_tree_var, value='tree1').grid(row=3,
+                                                                                                              column=0)
+        tk.Radiobutton(self.entry_frame, text="Table 2", variable=self.selected_tree_var, value='tree2').grid(row=3,
+                                                                                                              column=1)
+
+    def add_device(self):
+        # Logic to add a device
+        name = self.name_entry.get()
+        ip = self.ip_entry.get()
+        if name and ip:
+            selected_tree = self.master.tree1 if self.selected_tree_var.get() == 'tree1' else self.master.tree2
+            device = Device(name, ip)
+            device.item = selected_tree.insert("", tk.END, values=(len(self.master.devices) + 1, name, ip, "Unknown"))
+            device.tree = selected_tree
+            self.master.devices[name] = device
+            self.name_entry.delete(0, tk.END)
+            self.ip_entry.delete(0, tk.END)
+            self.master.save_devices()
+            self.master.reset_device_cycle()
+
+    def remove_selected(self):
+        # Logic to remove a selected device
+        for tree in [self.master.tree1, self.master.tree2]:
+            selected_item = tree.selection()
+            if selected_item:
+                device_to_remove = None
+                for name, device in self.master.devices.items():
+                    if device.item == selected_item[0]:
+                        tree.delete(selected_item[0])
+                        device_to_remove = name
+                        break
+
+                if device_to_remove:
+                    del self.master.devices[device_to_remove]
+                    self.master.save_devices()
+                    self.master.reset_device_cycle()
+                break
 
     def apply_settings(self):
+        # Logic to apply settings
         resolution = self.resolution_entry.get()
         text_size = int(self.text_size_entry.get())
         self.master.update_settings(resolution, text_size, self.hide_ip_var.get())
@@ -83,6 +155,7 @@ class SettingsDialog(tk.Toplevel):
         self.master.save_devices()
 
         self.destroy()
+
 
 class DeviceMonitorApp(tk.Tk):
     def __init__(self, resolution='1200x700', text_size=10, hide_ip=False):
@@ -107,28 +180,12 @@ class DeviceMonitorApp(tk.Tk):
 
 
     def setup_ui(self):
-        self.entry_frame = tk.Frame(self)
-        self.entry_frame.pack(pady=10)
-
-        self.name_entry = tk.Entry(self.entry_frame, width=20)
-        self.name_entry.grid(row=0, column=0, padx=5)
-
-        self.ip_entry = tk.Entry(self.entry_frame, width=20)
-        self.ip_entry.grid(row=0, column=1, padx=5)
-
-        add_button = tk.Button(self.entry_frame, text="Add Device", command=self.add_device)
-        add_button.grid(row=0, column=2, padx=5)
-
-        remove_button = tk.Button(self.entry_frame, text="Remove Device", command=self.remove_selected)
-        remove_button.grid(row=0, column=3, padx=5)
+        self.entry_frame = tk.Frame(self)  # Define entry_frame here
+        self.entry_frame.pack(side="top", fill="x", pady=10)
 
         settings_button = tk.Button(self.entry_frame, text="Settings", command=self.open_settings)
         settings_button.grid(row=0, column=4, padx=5)
 
-        tk.Radiobutton(self.entry_frame, text="Table 1", variable=self.selected_tree_var, value='tree1').grid(row=1,
-                                                                                                              column=0)
-        tk.Radiobutton(self.entry_frame, text="Table 2", variable=self.selected_tree_var, value='tree2').grid(row=1,
-                                                                                                              column=1)
 
         # Frames for treeviews including labels
         self.tree_frame1 = tk.Frame(self)
@@ -238,14 +295,17 @@ class DeviceMonitorApp(tk.Tk):
         try:
             device = next(self.device_cycle)
         except StopIteration:
-            self.device_cycle = cycle(self.devices.values())
-            device = next(self.device_cycle)
+            # Reset the device cycle if it's empty and try again
+            self.reset_device_cycle()
+            try:
+                device = next(self.device_cycle)
+            except StopIteration:
+                # If it's still empty, then there are no devices to monitor
+                return
 
         self.set_to_grey(device)
-        # Schedule the ping and update after 1 second
         self.after(1000, lambda: self.thread_pool.submit(self.ping_and_update, device))
-        self.after(1000, self.monitor_devices)  # 5 seconds plus 1 second grey time
-
+        self.after(1000, self.monitor_devices)
     def set_to_grey(self, device):
         device.tree.item(device.item, tags=('grey',))
         device.tree.tag_configure('grey', foreground='grey')
@@ -286,17 +346,14 @@ class DeviceMonitorApp(tk.Tk):
             self.label_tree2.config(text=labels.get('label_tree2', "Table 2"))
 
             for name, data in loaded_devices.items():
-                ip = data.get('ip')  # Use get method to avoid KeyError
-                if ip is None:
-                    continue  # Skip this entry if IP is not found, or handle it differently
-
+                ip = data.get('ip')
                 table_choice = data.get('table', 'tree1')
-                self.selected_tree_var.set(table_choice)
-                self.name_entry.insert(0, name)
-                self.ip_entry.insert(0, ip)
-                self.add_device()
-                self.name_entry.delete(0, tk.END)
-                self.ip_entry.delete(0, tk.END)
+                tree = self.tree1 if table_choice == 'tree1' else self.tree2
+                device = Device(name, ip)
+                device.tree = tree
+                device.item = tree.insert("", tk.END, values=(len(self.devices) + 1, name, ip, "Unknown"))
+                self.devices[name] = device
+
 
     def reset_device_cycle(self):
         # Combine devices from both tables
