@@ -462,7 +462,7 @@ class DeviceMonitorApp(tk.Tk):
         left_spacer = tk.Frame(self.entry_frame, width=20)
         left_spacer.pack(side="left")
 
-        left_image = Image.open("ntpc logo.png")
+        left_image = Image.open("ntpclogo.png")
         left_image = left_image.resize((desired_widthl, desired_heightl))
         left_photo = ImageTk.PhotoImage(left_image)
 
