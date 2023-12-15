@@ -11,6 +11,14 @@ from PIL import Image, ImageTk
 import base64
 import tkinter.messagebox as messagebox
 
+"""
+Author: vanshksingh
+Email: vsvsasas@gmail.com
+GitHub: [Your GitHub Profile]
+Date: Friday 15/12/2023
+Description: Network Monitoring Using Ping for NTPC requirement
+"""
+
 
 
 
@@ -234,24 +242,48 @@ class SettingsDialog(tk.Toplevel):
 
     def remove_selected(self):
         # Logic to remove a selected device
-        for tree in [self.master.tree1, self.master.tree2]:
-            selected_item = tree.selection()
-            if selected_item:
-                device_to_remove = None
-                for name, device in self.master.devices.items():
-                    if device.item == selected_item[0]:
-                        tree.delete(selected_item[0])
-                        device_to_remove = name
-                        break
+        selected_item = self.master.tree1.selection()
+        if selected_item:
+            device_to_remove = None
+            for name, device in self.master.devices.items():
+                if device.item == selected_item[0]:
+                    self.master.tree1.delete(selected_item[0])
+                    device_to_remove = name
+                    break
 
-                if device_to_remove:
-                    del self.master.devices[device_to_remove]
-                    self.master.save_devices()
-                    self.master.reset_device_cycle()
-                break
+            if device_to_remove:
+                del self.master.devices[device_to_remove]
+                self.master.save_devices()
+                self.master.reset_device_cycle()
+            return
+
+        selected_item = self.master.tree2.selection()
+        if selected_item:
+            device_to_remove = None
+            for name, device in self.master.devices.items():
+                if device.item == selected_item[0]:
+                    self.master.tree2.delete(selected_item[0])
+                    device_to_remove = name
+                    break
+
+            if device_to_remove:
+                del self.master.devices[device_to_remove]
+                self.master.save_devices()
+                self.master.reset_device_cycle()
+            return
 
     def apply_settings(self):
         # Logic to apply settings
+
+        # Update IP visibility for each device
+        for device in self.master.devices.values():
+            if self.master.hide_ip:
+                ip_text = '*******'
+            else:
+                ip_text = device.ip
+            device.tree.item(device.item,
+                             values=(device.tree.index(device.item) + 1, device.name, ip_text, device.status))
+
         resolution = self.resolution_entry.get()
         text_size = int(self.text_size_entry.get())
         self.master.update_settings(resolution, text_size, self.hide_ip_var.get())
@@ -596,13 +628,14 @@ class DeviceMonitorApp(tk.Tk):
             self.save_devices()
             self.reset_device_cycle()
 
-
     def remove_selected(self):
         for tree in [self.tree1, self.tree2]:
             selected_item = tree.selection()
             if selected_item:
+                devices_copy = dict(self.devices)  # Create a copy of the devices dictionary
+
                 device_to_remove = None
-                for name, device in self.devices.items():
+                for name, device in devices_copy.items():
                     if device.item == selected_item[0]:
                         tree.delete(selected_item[0])
                         device_to_remove = name
@@ -612,7 +645,7 @@ class DeviceMonitorApp(tk.Tk):
                     del self.devices[device_to_remove]
                     self.save_devices()
                     self.reset_device_cycle()  # Reset device cycle after removing a device
-                break
+                    break
 
     def reset_device_cycle(self):
         # Reset the device cycle with the current devices
@@ -663,10 +696,15 @@ class DeviceMonitorApp(tk.Tk):
 
         self.monitor_devices()
 
-
     def set_to_grey(self, device):
-        device.tree.item(device.item, tags=('grey',))
-        device.tree.tag_configure('grey', foreground='grey')
+        item_id = device.item
+        tree_name = device.tree
+
+        # Check if the item exists in the specified tree
+        if item_id in tree_name.get_children():
+            tree_name.item(item_id, tags=('grey',))
+        else:
+            print(f"Item {item_id} not found in the {tree_name} tree.")
 
     def ping_and_update(self, device):
         status = ping(device.ip)
@@ -708,11 +746,12 @@ class DeviceMonitorApp(tk.Tk):
             settings = loaded_data.get('settings', {})
 
             # Load settings
-            self.title_text = settings.get('title', "Device Monitor Application")
-            self.text_size = settings.get('text_size', 15)
-            self.hide_ip = settings.get('hide_ip', False)
+            loaded_title = settings.get('title', "Device Monitor Application")
+            self.title_text = loaded_title  # Set the title_text to the loaded title
             self.update_treeview_row_height()
-            self.title_label.config(text=self.title_text)
+
+            # Set hide_ip before loading devices
+            self.hide_ip = settings.get('hide_ip', False)
 
             for name, data in loaded_devices.items():
                 ip = data.get('ip')
@@ -721,13 +760,19 @@ class DeviceMonitorApp(tk.Tk):
                 device = Device(name, ip)
                 device.tree = tree
                 if self.hide_ip:
-                    ip = '*******'  # Replace IP with hidden format if hide_ip is True
+                    ip = '*******'
                 device.item = tree.insert("", tk.END, values=(len(self.devices) + 1, name, ip, "Unknown"))
                 self.devices[name] = device
 
+            # Update the title after loading all devices
+            self.update_title(loaded_title)
+
+            # Update the labels after loading all devices
+            self.label_tree1.config(text=labels.get('label_tree1', "Table 1"))
+            self.label_tree2.config(text=labels.get('label_tree2', "Table 2"))
+
             # Update the IP visibility after loading all devices
             self.update_ip_visibility()
-
     def reset_device_cycle(self):
         # Combine devices from both tables
         devices_combined = list(self.devices.values())
