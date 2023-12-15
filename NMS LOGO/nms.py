@@ -11,6 +11,14 @@ from PIL import Image, ImageTk
 import base64
 import tkinter.messagebox as messagebox
 
+"""
+Author: vanshksingh
+Email: vsvsasas@gmail.com
+GitHub: [Your GitHub Profile]
+Date: Friday 15/12/2023
+Description: Network Monitoring Using Ping for NTPC requirement
+"""
+
 
 
 
@@ -708,9 +716,8 @@ class DeviceMonitorApp(tk.Tk):
             settings = loaded_data.get('settings', {})
 
             # Load settings
-            self.title_text = settings.get('title', "Device Monitor Application")
-            self.text_size = settings.get('text_size', 15)
-            self.hide_ip = settings.get('hide_ip', False)
+            loaded_title = settings.get('title', "Device Monitor Application")
+            self.title_text = loaded_title  # Set the title_text to the loaded title
             self.update_treeview_row_height()
 
             for name, data in loaded_devices.items():
@@ -720,9 +727,12 @@ class DeviceMonitorApp(tk.Tk):
                 device = Device(name, ip)
                 device.tree = tree
                 if self.hide_ip:
-                    ip = '*******'  # Replace IP with hidden format if hide_ip is True
+                    ip = '*******'
                 device.item = tree.insert("", tk.END, values=(len(self.devices) + 1, name, ip, "Unknown"))
                 self.devices[name] = device
+
+            # Update the title after loading all devices
+            self.update_title(loaded_title)
 
             # Update the labels after loading all devices
             self.label_tree1.config(text=labels.get('label_tree1', "Table 1"))
@@ -730,7 +740,6 @@ class DeviceMonitorApp(tk.Tk):
 
             # Update the IP visibility after loading all devices
             self.update_ip_visibility()
-
     def reset_device_cycle(self):
         # Combine devices from both tables
         devices_combined = list(self.devices.values())
