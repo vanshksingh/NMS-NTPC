@@ -14,7 +14,7 @@ import tkinter.messagebox as messagebox
 """
 Author: vanshksingh
 Email: vsvsasas@gmail.com
-GitHub: [Your GitHub Profile]
+GitHub: https://github.com/vanshksingh
 Date: Friday 15/12/2023
 Description: Network Monitoring Using Ping for NTPC requirement
 """
