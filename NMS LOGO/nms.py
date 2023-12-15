@@ -712,7 +712,6 @@ class DeviceMonitorApp(tk.Tk):
             self.text_size = settings.get('text_size', 15)
             self.hide_ip = settings.get('hide_ip', False)
             self.update_treeview_row_height()
-            self.title_label.config(text=self.title_text)
 
             for name, data in loaded_devices.items():
                 ip = data.get('ip')
@@ -724,6 +723,10 @@ class DeviceMonitorApp(tk.Tk):
                     ip = '*******'  # Replace IP with hidden format if hide_ip is True
                 device.item = tree.insert("", tk.END, values=(len(self.devices) + 1, name, ip, "Unknown"))
                 self.devices[name] = device
+
+            # Update the labels after loading all devices
+            self.label_tree1.config(text=labels.get('label_tree1', "Table 1"))
+            self.label_tree2.config(text=labels.get('label_tree2', "Table 2"))
 
             # Update the IP visibility after loading all devices
             self.update_ip_visibility()
