@@ -260,6 +260,16 @@ class SettingsDialog(tk.Toplevel):
 
     def apply_settings(self):
         # Logic to apply settings
+
+        # Update IP visibility for each device
+        for device in self.master.devices.values():
+            if self.master.hide_ip:
+                ip_text = '*******'
+            else:
+                ip_text = device.ip
+            device.tree.item(device.item,
+                             values=(device.tree.index(device.item) + 1, device.name, ip_text, device.status))
+
         resolution = self.resolution_entry.get()
         text_size = int(self.text_size_entry.get())
         self.master.update_settings(resolution, text_size, self.hide_ip_var.get())
@@ -719,6 +729,9 @@ class DeviceMonitorApp(tk.Tk):
             loaded_title = settings.get('title', "Device Monitor Application")
             self.title_text = loaded_title  # Set the title_text to the loaded title
             self.update_treeview_row_height()
+
+            # Set hide_ip before loading devices
+            self.hide_ip = settings.get('hide_ip', False)
 
             for name, data in loaded_devices.items():
                 ip = data.get('ip')
