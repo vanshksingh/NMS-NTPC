@@ -242,21 +242,35 @@ class SettingsDialog(tk.Toplevel):
 
     def remove_selected(self):
         # Logic to remove a selected device
-        for tree in [self.master.tree1, self.master.tree2]:
-            selected_item = tree.selection()
-            if selected_item:
-                device_to_remove = None
-                for name, device in self.master.devices.items():
-                    if device.item == selected_item[0]:
-                        tree.delete(selected_item[0])
-                        device_to_remove = name
-                        break
+        selected_item = self.master.tree1.selection()
+        if selected_item:
+            device_to_remove = None
+            for name, device in self.master.devices.items():
+                if device.item == selected_item[0]:
+                    self.master.tree1.delete(selected_item[0])
+                    device_to_remove = name
+                    break
 
-                if device_to_remove:
-                    del self.master.devices[device_to_remove]
-                    self.master.save_devices()
-                    self.master.reset_device_cycle()
-                break
+            if device_to_remove:
+                del self.master.devices[device_to_remove]
+                self.master.save_devices()
+                self.master.reset_device_cycle()
+            return
+
+        selected_item = self.master.tree2.selection()
+        if selected_item:
+            device_to_remove = None
+            for name, device in self.master.devices.items():
+                if device.item == selected_item[0]:
+                    self.master.tree2.delete(selected_item[0])
+                    device_to_remove = name
+                    break
+
+            if device_to_remove:
+                del self.master.devices[device_to_remove]
+                self.master.save_devices()
+                self.master.reset_device_cycle()
+            return
 
     def apply_settings(self):
         # Logic to apply settings
@@ -614,13 +628,14 @@ class DeviceMonitorApp(tk.Tk):
             self.save_devices()
             self.reset_device_cycle()
 
-
     def remove_selected(self):
         for tree in [self.tree1, self.tree2]:
             selected_item = tree.selection()
             if selected_item:
+                devices_copy = dict(self.devices)  # Create a copy of the devices dictionary
+
                 device_to_remove = None
-                for name, device in self.devices.items():
+                for name, device in devices_copy.items():
                     if device.item == selected_item[0]:
                         tree.delete(selected_item[0])
                         device_to_remove = name
@@ -630,7 +645,7 @@ class DeviceMonitorApp(tk.Tk):
                     del self.devices[device_to_remove]
                     self.save_devices()
                     self.reset_device_cycle()  # Reset device cycle after removing a device
-                break
+                    break
 
     def reset_device_cycle(self):
         # Reset the device cycle with the current devices
@@ -681,10 +696,15 @@ class DeviceMonitorApp(tk.Tk):
 
         self.monitor_devices()
 
-
     def set_to_grey(self, device):
-        device.tree.item(device.item, tags=('grey',))
-        device.tree.tag_configure('grey', foreground='grey')
+        item_id = device.item
+        tree_name = device.tree
+
+        # Check if the item exists in the specified tree
+        if item_id in tree_name.get_children():
+            tree_name.item(item_id, tags=('grey',))
+        else:
+            print(f"Item {item_id} not found in the {tree_name} tree.")
 
     def ping_and_update(self, device):
         status = ping(device.ip)
