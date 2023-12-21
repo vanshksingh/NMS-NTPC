@@ -100,7 +100,7 @@ class SettingsDialog(tk.Toplevel):
         super().__init__(master)
         self.app_instance = app_instance  # Store the reference to the app instance
         self.title("Settings")
-        self.geometry("320x900")
+        self.geometry("210x900")
 
         # Initialize selected_tree_var
         self.selected_tree_var = tk.StringVar(value='tree1')
@@ -635,10 +635,10 @@ class DeviceMonitorApp(tk.Tk):
         tree.heading("IP", text="IP")
         tree.heading("Status", text="Status")
 
-        tree.column("Serial", width=10, anchor=tk.CENTER)
-        tree.column("Name", width=300, anchor=tk.CENTER)
-        tree.column("IP", width=10, anchor=tk.CENTER)
-        tree.column("Status", width=50, anchor=tk.CENTER)
+        tree.column("Serial", width=5, anchor=tk.CENTER)
+        tree.column("Name", width=250)
+        tree.column("IP", width=50, anchor=tk.CENTER)
+        tree.column("Status", width=20, anchor=tk.CENTER)
 
         return tree
 
