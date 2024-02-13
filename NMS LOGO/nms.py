@@ -323,7 +323,7 @@ class SettingsDialog(tk.Toplevel):
         font = (font_family, font_size, font_style)
         self.app_instance.update_widget_font(selected_widget, font)
 
-        self.destroy()
+        #self.destroy()  removing old implementation
 
 
 
@@ -492,10 +492,10 @@ class DeviceMonitorApp(tk.Tk):
 
     def setup_ui(self):
         self.entry_frame = tk.Frame(self)
-        self.entry_frame.pack(side="top", fill="x", pady=10)
+        self.entry_frame.pack(side="top", fill="x", pady=0)
 
-        desired_heightl = 110
-        desired_widthl = 150
+        desired_heightl = 90
+        desired_widthl = 130
 
         left_spacer = tk.Frame(self.entry_frame, width=20)
         left_spacer.pack(side="left")
@@ -518,8 +518,8 @@ class DeviceMonitorApp(tk.Tk):
                               font=('Helvetica', 1))  # Adjust font size and line length
         line_label.pack(side="bottom")
 
-        desired_heightr = 100
-        desired_widthr = 150
+        desired_heightr = 80
+        desired_widthr = 130
 
         right_spacer = tk.Frame(self.entry_frame, width=20)
         right_spacer.pack(side="right")
@@ -540,10 +540,10 @@ class DeviceMonitorApp(tk.Tk):
         settings_button.pack(side="top", padx=5)  # Add some vertical padding (e.g., 10 pixels)
 
         # Frames for treeviews including labels
-        self.tree_frame1 = tk.Frame(self, padx=10, pady=10)
-        self.tree_frame2 = tk.Frame(self, padx=10, pady=10)
-        self.tree_frame1.pack(side="left", expand=True, fill="both", padx=10)
-        self.tree_frame2.pack(side="right", expand=True, fill="both", padx=10)
+        self.tree_frame1 = tk.Frame(self, padx=5, pady=0)
+        self.tree_frame2 = tk.Frame(self, padx=5, pady=0)
+        self.tree_frame1.pack(side="left", expand=True, fill="both", padx=5)
+        self.tree_frame2.pack(side="right", expand=True, fill="both", padx=5)
 
         # Create and pack the labels above the treeviews
         self.label_tree1 = tk.Label(self.tree_frame1, text="Table 1", font=('Helvetica', 22, 'bold'))
@@ -824,3 +824,4 @@ if __name__ == "__main__":
     app.start_monitoring()
     app.tk_setPalette(background='light blue', foreground='black', activeBackground='gray80', activeForeground='black')
     app.mainloop()
+
