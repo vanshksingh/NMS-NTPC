@@ -1,3 +1,4 @@
+#quicksave
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
@@ -7,14 +8,14 @@ import json
 import os
 from itertools import cycle
 from concurrent.futures import ThreadPoolExecutor
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk , ImageFilter , ImageDraw
 import base64
 import tkinter.messagebox as messagebox
 
 """
 Author: vanshksingh
 Email: vsvsasas@gmail.com
-GitHub: [Your GitHub Profile]
+GitHub: https://github.com/vanshksingh
 Date: Friday 15/12/2023
 Description: Network Monitoring Using Ping for NTPC requirement
 """
@@ -33,12 +34,16 @@ class PasswordDialog(tk.Toplevel):
         super().__init__(master)
         self.on_success = on_success
         self.title("Enter Password")
+
         self.geometry("300x120")
+
 
         tk.Label(self, text="Password:").pack(pady=10)
         self.password_entry = tk.Entry(self, show="*")
         self.password_entry.pack()
         tk.Button(self, text="Submit", command=self.check_password).pack(pady=10)
+
+
 
     def check_password(self):
         entered_password = self.password_entry.get()
@@ -96,7 +101,7 @@ class SettingsDialog(tk.Toplevel):
         super().__init__(master)
         self.app_instance = app_instance  # Store the reference to the app instance
         self.title("Settings")
-        self.geometry("320x900")
+        self.geometry("210x900")
 
         # Initialize selected_tree_var
         self.selected_tree_var = tk.StringVar(value='tree1')
@@ -319,7 +324,7 @@ class SettingsDialog(tk.Toplevel):
         font = (font_family, font_size, font_style)
         self.app_instance.update_widget_font(selected_widget, font)
 
-        self.destroy()
+        #self.destroy()  removing old implementation
 
 
 
@@ -327,6 +332,8 @@ class DeviceMonitorApp(tk.Tk):
     def __init__(self, resolution='1200x700', text_size=15, hide_ip=False, title_text="Device Monitor Application"):
         super().__init__()
         self.title("Device Monitor")
+
+
         # Increase the font size for all elements
         self.text_size = text_size + 5  # Increase text size by 5
 
@@ -420,8 +427,8 @@ class DeviceMonitorApp(tk.Tk):
             self.label_tree2.config(font=font_config)
         elif widget_name == "tree1":
             style = ttk.Style()
-            style.configure("Treeview", font=font_config)
-            self.tree1.configure(style="Treeview")
+            style.configure("Treeview", font=font_config )
+            self.tree1.configure(style="Treeview" )
         elif widget_name == "tree2":
             style = ttk.Style()
             style.configure("Treeview", font=font_config)
@@ -486,16 +493,17 @@ class DeviceMonitorApp(tk.Tk):
 
     def setup_ui(self):
         self.entry_frame = tk.Frame(self)
-        self.entry_frame.pack(side="top", fill="x", pady=10)
+        self.entry_frame.pack(side="top", fill="x", pady=0)
 
-        desired_heightl = 110
-        desired_widthl = 150
+        desired_heightl = 90
+        desired_widthl = 130
 
         left_spacer = tk.Frame(self.entry_frame, width=20)
         left_spacer.pack(side="left")
 
         left_image = Image.open("ntpclogo.png")
         left_image = left_image.resize((desired_widthl, desired_heightl))
+        left_image = self.make_rounded_image(left_image)
         left_photo = ImageTk.PhotoImage(left_image)
 
         left_image_label = tk.Label(self.entry_frame, image=left_photo)
@@ -511,8 +519,8 @@ class DeviceMonitorApp(tk.Tk):
                               font=('Helvetica', 1))  # Adjust font size and line length
         line_label.pack(side="bottom")
 
-        desired_heightr = 100
-        desired_widthr = 150
+        desired_heightr = 80
+        desired_widthr = 130
 
         right_spacer = tk.Frame(self.entry_frame, width=20)
         right_spacer.pack(side="right")
@@ -522,6 +530,7 @@ class DeviceMonitorApp(tk.Tk):
 
         right_image = Image.open("auraiya.png")
         right_image = right_image.resize((desired_widthr, desired_heightr))
+        right_image = self.make_rounded_image(right_image)
         right_photo = ImageTk.PhotoImage(right_image)
 
         right_image_label = tk.Label(right_bottom_frame, image=right_photo)
@@ -532,10 +541,10 @@ class DeviceMonitorApp(tk.Tk):
         settings_button.pack(side="top", padx=5)  # Add some vertical padding (e.g., 10 pixels)
 
         # Frames for treeviews including labels
-        self.tree_frame1 = tk.Frame(self, padx=10 , pady=10)
-        self.tree_frame2 = tk.Frame(self, padx=10 , pady=10)
-        self.tree_frame1.pack(side="left", expand=True, fill="both", padx=10)
-        self.tree_frame2.pack(side="right", expand=True, fill="both", padx=10)
+        self.tree_frame1 = tk.Frame(self, padx=5, pady=0)
+        self.tree_frame2 = tk.Frame(self, padx=5, pady=0)
+        self.tree_frame1.pack(side="left", expand=True, fill="both", padx=5)
+        self.tree_frame2.pack(side="right", expand=True, fill="both", padx=5)
 
         # Create and pack the labels above the treeviews
         self.label_tree1 = tk.Label(self.tree_frame1, text="Table 1", font=('Helvetica', 22, 'bold'))
@@ -544,10 +553,23 @@ class DeviceMonitorApp(tk.Tk):
         self.label_tree2.pack(side="top", fill="x")
 
         # Treeviews
-        self.tree1 = self.create_treeview(self.tree_frame1)
-        self.tree2 = self.create_treeview(self.tree_frame2)
-        self.tree1.pack(expand=True, fill="both" , padx=5, pady=5)
-        self.tree2.pack(expand=True, fill="both" , padx=5, pady=5)
+        self.tree1 = self.create_treeview(self.tree_frame1, corner_radius=10)
+        self.tree2 = self.create_treeview(self.tree_frame2, corner_radius=10)
+        self.tree1.pack(expand=True, fill="both", padx=5, pady=5)
+        self.tree2.pack(expand=True, fill="both", padx=5, pady=5)
+
+    def make_rounded_image(self, image):
+        # Make the border of the image curved
+        corner_radius = 10  # You can adjust this value based on your preference
+
+        mask = Image.new("L", image.size, 0)
+        draw = ImageDraw.Draw(mask)
+        draw.rounded_rectangle((0, 0, image.width, image.height), corner_radius, fill=255)
+
+        result = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        result.paste(image, mask=mask)
+
+        return result
 
     def update_font(self, font_family, font_size, font_style):
         self.font_family = font_family
@@ -595,21 +617,29 @@ class DeviceMonitorApp(tk.Tk):
         style = ttk.Style()
         style.configure('Treeview', font=('Helvetica', self.text_size))
 
-    def create_treeview(self, parent):
-        style = ttk.Style()
-        style.configure("Custom.Treeview", font=("Helvetica", self.text_size),
-                        rowheight=30)  # Adjust the row height here
-        tree = ttk.Treeview(parent, style="Custom.Treeview", columns=("Serial", "Name", "IP", "Status"),
-                            show='headings')
+    def create_treeview(self, parent, corner_radius):
+        style_name = f"rounded_treeview_{corner_radius}"
+
+        # Check if the style has been created before
+        if not hasattr(self, '_style_created'):
+            style = ttk.Style()
+            style.configure(style_name, font=("Helvetica", self.text_size), rowheight=30)
+            style.element_create(style_name, "from", "default")
+            style.layout(style_name, [('Treeview.treearea', {'sticky': 'nswe'})])
+
+            # Set the flag to indicate that the style has been created
+            self._style_created = True
+
+        tree = ttk.Treeview(parent, style=style_name, columns=("Serial", "Name", "IP", "Status"), show='headings')
         tree.heading("Serial", text="Serial No")
         tree.heading("Name", text="Name")
         tree.heading("IP", text="IP")
         tree.heading("Status", text="Status")
 
-        tree.column("Serial", width=10, anchor=tk.CENTER)
-        tree.column("Name", width=300, anchor=tk.CENTER)
-        tree.column("IP", width=10, anchor=tk.CENTER)
-        tree.column("Status", width=50, anchor=tk.CENTER)
+        tree.column("Serial", width=5, anchor=tk.CENTER)
+        tree.column("Name", width=250)
+        tree.column("IP", width=50, anchor=tk.CENTER)
+        tree.column("Status", width=20, anchor=tk.CENTER)
 
         return tree
 
@@ -795,3 +825,4 @@ if __name__ == "__main__":
     app.start_monitoring()
     app.tk_setPalette(background='light blue', foreground='black', activeBackground='gray80', activeForeground='black')
     app.mainloop()
+
