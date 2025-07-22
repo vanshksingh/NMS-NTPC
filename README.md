@@ -1,7 +1,7 @@
 
 # Network Monitoring Application
 
-This Python application for network monitoring using Ping was built for NTPC requirements. Developed by **vanshksingh**, the application utilizes the Tkinter library for the graphical user interface and provides features such as device management, settings configuration, and password protection.
+This Python application (includes an .exe) for network monitoring using Ping was built for NTPC requirements. Developed by **vanshksingh**, the application utilizes the Tkinter library for the graphical user interface and provides features such as device management, settings configuration, and password protection.
 
 
 ![image](https://github.com/vanshksingh/NMS-NTPC/assets/114809624/3a5c4293-e76c-4680-a10d-9494fe421a76)
